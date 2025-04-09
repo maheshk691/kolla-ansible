@@ -1,0 +1,65 @@
+---
+- name: Add internal and public VIP hostnames to all OpenStack nodes
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Add internal VIP entry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.1.0.10 internal.test.com"
+        state: present
+
+    - name: Add public VIP entry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.1.0.10 public.test.com"
+        state: present
+
+    - name: Add  kolla-controller-1 entry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.1.0.167 kolla-controller-1 kolla-controller-1.internal.test.com"
+        state: present
+
+    - name: Add kolla-controller-2 entry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.1.0.45  kolla-controller-2 kolla-controller-2.internal.test.com"
+        state: present
+
+    - name: Add  kolla-controller-3 entry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.1.0.50  kolla-controller-3 kolla-controller-3.internal.test.com"
+        state: present
+
+    - name: Add kolla-compute1 entry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.1.0.66  kolla-compute1 kolla-compute1.internal.test.com"
+        state: present
+
+    - name: Add  public kolla-controller-1 entry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.2.0.14   kolla-controller-1.public.test.com"
+        state: present
+
+    - name: Add public kolla-controller-2 entry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.2.0.211  kolla-controller-2.public.test.com"
+        state: present
+
+    - name: Add public kolla-controller-3 entry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.2.0.203  kolla-controller-3.public.test.com"
+        state: present
+
+    - name: Add public kolla-compute1 entry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.2.0.74  kolla-compute1.public.test.com"
+        state: present

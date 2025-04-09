@@ -1,0 +1,30 @@
+---
+- name: Install internal CA certificate on all nodes
+  hosts: all
+  become: true
+  vars:
+    ca_src_path: /etc/kolla/certificates/ca/root.crt
+    ca_dest_path: /usr/local/share/ca-certificates/kolla-ca.crt
+    trust_update_cmd: "update-ca-certificates"
+
+  tasks:
+    - name: Copy internal CA certificate to remote node
+      copy:
+        src: "{{ ca_src_path }}"
+        dest: "{{ ca_dest_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Update trusted certificates on Ubuntu
+      command: "{{ trust_update_cmd }}"
+      when: ansible_facts['distribution'] == "Ubuntu"
+
+    - name: Update system trusted certificates
+      command: "{{ trust_update_cmd }}"
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Update RedHat system trusted certificates
+      command: "update-ca-trust"
+      when: ansible_facts['os_family'] == "RedHat"
+
