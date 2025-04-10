@@ -1,137 +1,276 @@
-# kolla-ansible
 
-![image](https://github.com/user-attachments/assets/08689b21-5a8e-49e8-a98b-9d870b3ef70d)
+# Kolla-Ansible Multi-Node Deployment (3 Controllers, 1 Compute)
 
 
-🧱 Kolla-Ansible Multi-Node Deployment (3 Controllers, 1 Compute)
-🧭 Objective
-Deploy a basic OpenStack environment using Kolla-Ansible, with:
+
+
+## Tech Stack
+
+**OpesnStack Deployment using:** Kolla-Ansible
+
+**Server OS:** Ubuntu 22.04 LTS
+
+**Tools:** Docker container, Local docker register, Python3, Ansible 2.17 and Virtual machine
+ 
+## Requirements
+Design and implement a fully automated deployment of an OpenStack environment using Ansible on an
+EC2 instance running Ubuntu Jammy (22.04). The deployed OpenStack must support:
+
+· Compute (Nova)
+
+· Storage (Swift)
+
+· Database (Trove)
+
+. High Availability (HA) Architecture:
+
+. Networking
+
+. Security
+
+. Error Handling and Rollback
+
+. Monitoring and Logging
+
+. Validation
+## High Availability (HA) Architecture
+Deploy a basic OpenStack environment using Kolla-Ansible.
+
 
 3 Controller Nodes (HA)
 
 1 Compute Node
 
-Separate internal and external networks
+Separate internal and external networks with 2 NICs:  ens3 for internal and ens4 for external
 
-Core OpenStack services: Keystone, Glance, Nova, Neutron, Horizon, Cinder
+Passwordless SSH from the deploy node to all nodes.
 
-🖥️ Node Layout
-Hostname	Role	IP (Internal)	IP (External)
-controller01	Controller	10.0.0.11	192.168.0.11
-controller02	Controller	10.0.0.12	192.168.0.12
-controller03	Controller	10.0.0.13	192.168.0.13
-compute01	Compute	10.0.0.21	192.168.0.21
-deploy	Deployment	10.0.0.10	192.168.0.10
-📦 Requirements
-On All Nodes
-Ubuntu 22.04 / CentOS 9 Stream
 
-At least 2 NICs: eth0 for internal, eth1 for external
 
-Passwordless SSH from deploy node to all others
+## Deployment
 
-🛠️ Pre-Setup Steps
-1. Install Dependencies on the Deploy Node
-bash
-Copy
-Edit
-sudo apt update
-sudo apt install -y python3-dev libffi-dev gcc libssl-dev python3-pip
-sudo pip3 install -U pip
-pip install kolla-ansible ansible
-2. Create Kolla Directories
-bash
-Copy
-Edit
-sudo mkdir -p /etc/kolla
-sudo chown $USER:$USER /etc/kolla
-cp -r /usr/local/share/kolla-ansible/etc_examples/kolla/* /etc/kolla
-cp /usr/local/share/kolla-ansible/ansible/inventory/multinode .
-📝 Configure Inventory File (multinode)
-Example:
+To deploy this project run
 
-ini
-Copy
-Edit
+Core OpenStack services: Keystone, Glance, Nova, Neutron, Horizon, Swift and Trove
+
+Monitoring and Logging: 
+
+Deploy OpenStack's Telemetry services Ceilometer, Grafana, and Prometheus for monitoring. 
+
+Deploy centralized logging services like Opensearch and Fluentd
+
+![kolla-ansible-target-openstack](https://github.com/user-attachments/assets/98ad5516-c629-4c2e-90d8-d234edbd1dd2)
+
+
+## 🖥️ Node Layout
+
+Hostname Role IP (Internal) IP (External)
+
+kolla-controller-3 Controller 10.1.0.167 10.2.0.14
+
+kolla-controller-3 Controller 10.1.0.45 10.2.0.211
+
+kolla-controller-3 Controller 10.1.0.50 10.2.0.203
+
+kolla-compute01 Compute 10.1.0.66 10.2.0.74
+
+kolla jump box Deployment 10.0.0.10 10.2.0.10
+## Installtion Setps
+
+Create kolla user 
+
+```bash  
+adduser kolla
+usermod -aG sudo kolla
+echo "kolla ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/kola
+```
+
+Update the OS and install Python3 and required packages
+```bash 
+ apt-get update -y
+ sudo apt-get install python3-dev libffi-dev gcc libssl-dev python3-selinux python3-setuptools python3-venv -y
+ reboot
+ ```
+
+ Git clone the repo locally 
+```bash 
+ pip install -U pip
+ pip install git+https://opendev.org/openstack/kolla-ansible@master
+ kolla-ansible install-deps
+  ```
+
+  I
+## Prepare initial configuration Inventory
+Inventory
+
+```bash  
+cp ~/kolla-venv/share/kolla-ansible/ansible/inventory/* /etc/kolla
+
+  ```
+  Full file is in repo as multinode
+```bash
+vi multinode
+
+# These initial groups are the only groups required to be modified. The
+# additional groups are for more control of the environment.
 [control]
-controller01 ansible_host=10.0.0.11
-controller02 ansible_host=10.0.0.12
-controller03 ansible_host=10.0.0.13
+# These hostname must be resolvable from your deployment host
+kolla-controller-1
+kolla-controller-2
+kolla-controller-3
+
+# The above can also be specified as follows:
+#control[01:03]     ansible_user=kolla
+
+# The network nodes are where your l3-agent and loadbalancers will run
+# This can be the same as a host in the control group
+[network]
+kolla-controller-1
+kolla-controller-2
+kolla-controller-3
 
 [compute]
-compute01 ansible_host=10.0.0.21
+kolla-compute1
 
 [monitoring]
-controller01
+kolla-controller-1
+kolla-controller-2
+kolla-controller-3
 
-[deployment]
-localhost       ansible_connection=local
-🔧 Configure Global Settings (/etc/kolla/globals.yml)
-yaml
-Copy
-Edit
-kolla_base_distro: "ubuntu"
-kolla_install_type: "binary"
+```
 
-network_interface: "eth0"         # Internal interface
-neutron_external_interface: "eth1" # External interface for Floating IPs
-
-kolla_internal_vip_address: "10.0.0.100"
-kolla_external_vip_address: "192.168.0.100"
-
-enable_haproxy: "yes"
-enable_cinder: "yes"
-enable_horizon: "yes"
-enable_neutron_provider_networks: "yes"
-
-nova_compute_virt_type: "kvm"
-🔐 Generate Passwords
-bash
-Copy
-Edit
+Kolla passwords
+Passwords used in our deployment are stored in /etc/kolla/passwords.yml file. All passwords are blank in this file and have to be filled either manually or by running random password generator:
+```bash  
 kolla-genpwd
-🧪 Prechecks
-bash
-Copy
-Edit
-kolla-ansible -i multinode bootstrap-servers
-kolla-ansible -i multinode prechecks
-🚀 Deploy OpenStack
-bash
-Copy
-Edit
-kolla-ansible -i multinode deploy
-📈 Post Deployment
-Initialize OpenStack Environment
-bash
-Copy
-Edit
-kolla-ansible post-deploy
-source /etc/kolla/admin-openrc.sh
-Verify
-bash
-Copy
-Edit
-openstack service list
-openstack network agent list
-🌐 Access Horizon
-URL: http://192.168.0.100/horizon
+  ```
 
-Username: admin
+  Create /etc/host file entry for the nodes and public url add it the local jumpbox
 
-Password: (found in /etc/kolla/passwords.yml → keystone_admin_password)
+  ```bash
+  cat /etc/hosts
+ sudo tee -a /etc/hosts <<EOF
+ ### LIST SERVERS FOR OPENSTACK
+ 10.1.0.167 kolla-controller-1 kolla-controller-1.internal.test.com
+ 10.1.0.45  kolla-controller-2 kolla-controller-2.internal.test.com
+ 10.1.0.50  kolla-controller-3 kolla-controller-3.internal.test.com
+ 10.1.0.66  kolla-compute1 kolla-compute1.internal.test.com
+ 10.1.0.10  internal.test.com
+ 10.2.0.14   kolla-controller-1.public.test.com
+ 10.2.0.211  kolla-controller-2.public.test.com
+ 10.2.0.203  kolla-controller-3.public.test.com
+ 10.2.0.74  kolla-compute1.public.test.com
+ 10.2.0.10  public.test.com
+ EOF
+```
 
-📡 Network Configuration (Neutron)
-Internal: VXLAN (overlay via eth0)
+Using ansible play book to copy this /etc/hots to all nodes
+```bash
+ansible-playbook -i multinode add_vip_hosts.yml
+```
 
-External: Flat network via eth1
+Create SSL certtifacte for the deployment 
 
-Provider Network: setup in neutron with flat type
+```bash
+kolla-ansible certificates -i multimode
+```
 
-Example:
+Copy CA certificated to all nodes
+```bash
+ansible-playbook -i multinode install-internal-ca.yml
+```
 
-bash
-Copy
-Edit
-openstack network create --provider-network-type flat --provider-physical-network physnet1 --external public
-openstack subnet create --network public --subnet-range 192.168.0.0/24 --gateway 192.168.0.1 --no-dhcp public-subnet
+Now run the precheck for deployment
+
+
+Run Bootstrap for the deployment will install docker and required package for kolla-ansible deployment  
+```bash
+ kolla-ansible bootstrap-servers -i multimode
+
+
+PLAY RECAP *************************************************************************************************************************************************
+kolla-compute1             : ok=36   changed=14   unreachable=0    failed=0    skipped=27   rescued=0    ignored=0
+kolla-controller-1         : ok=36   changed=14   unreachable=0    failed=0    skipped=27   rescued=0    ignored=0
+kolla-controller-2         : ok=36   changed=14   unreachable=0    failed=0    skipped=27   rescued=0    ignored=0
+kolla-controller-3         : ok=36   changed=14   unreachable=0    failed=0    skipped=27   rescued=0    ignored=0
+localhost                  : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+```bash
+kolla-ansible prechecks -i multimode
+
+TASK [loadbalancer : Checking if kolla_internal_vip_address and kolla_external_vip_address are not pingable from any node] *********************************
+ok: [kolla-controller-2] => (item=10.1.0.10)
+ok: [kolla-controller-1] => (item=10.1.0.10)
+ok: [kolla-controller-3] => (item=10.1.0.10)
+ok: [kolla-controller-1] => (item=10.2.0.10)
+ok: [kolla-controller-3] => (item=10.2.0.10)
+ok: [kolla-controller-2] => (item=10.2.0.10)
+
+
+
+PLAY RECAP ******************************************************************************************************************************************************************************************************
+kolla-compute1             : ok=20   changed=0    unreachable=0    failed=0    skipped=39   rescued=0    ignored=0
+kolla-controller-1         : ok=65  changed=0    unreachable=0    failed=0    skipped=138  rescued=0    ignored=0
+kolla-controller-2         : ok=65  changed=0    unreachable=0    failed=0    skipped=125  rescued=0    ignored=0
+kolla-controller-3         : ok=65  changed=0    unreachable=0    failed=0    skipped=125  rescued=0    ignored=0
+localhost                  : ok=10   changed=0    unreachable=0    failed=0    skipped=13   rescued=0    ignored=0
+```
+
+Deploy Kolla-ansbile 
+
+```bash
+kolla-ansible deploy -i multimode
+
+PLAY RECAP ******************************************************************************************************************************************************************************************************
+kolla-compute1             : ok=46   changed=0    unreachable=0    failed=0    skipped=39   rescued=0    ignored=0
+kolla-controller-1         : ok=139  changed=0    unreachable=0    failed=0    skipped=138  rescued=0    ignored=0
+kolla-controller-2         : ok=135  changed=0    unreachable=0    failed=0    skipped=125  rescued=0    ignored=0
+kolla-controller-3         : ok=135  changed=0    unreachable=0    failed=0    skipped=125  rescued=0    ignored=0
+localhost                  : ok=14   changed=0    unreachable=0    failed=0    skipped=13   rescued=0    ignored=0
+
+```
+Post deployment check 
+
+```bash
+(kolla-venv) kolla@kolla-jumpbox:~$  kolla-ansible post-deploy -i kolla-ansible/multinode
+Post-Deploying Playbooks
+[WARNING]: Invalid characters were found in group names but not replaced, use -vvvv to see details
+
+PLAY [Creating clouds.yaml file on the deploy node] *************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************************************************************************************
+[WARNING]: Platform linux on host localhost is using the discovered Python interpreter at /home/kolla/kolla-venv/bin/python3.10, but future installation of another Python interpreter could change the meaning
+of that path. See https://docs.ansible.com/ansible-core/2.17/reference_appendices/interpreter_discovery.html for more information.
+ok: [localhost]
+
+TASK [Create /etc/openstack directory] **************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Template out clouds.yaml] *********************************************************************************************************************************************************************************
+changed: [localhost]
+
+PLAY [Creating admin openrc file on the deploy node] ************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [Template out admin-openrc.sh] *****************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Template out admin-openrc-system.sh] **********************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Template out public-openrc.sh] ****************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Template out public-openrc-system.sh] *********************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [octavia : Template out octavia-openrc.sh] *****************************************************************************************************************************************************************
+skipping: [localhost]
+
+PLAY RECAP ******************************************************************************************************************************************************************************************************
+localhost                  : ok=8    changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+```
