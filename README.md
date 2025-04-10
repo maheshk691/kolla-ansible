@@ -45,6 +45,7 @@ Separate internal and external networks with 2 NICs:  ens3 for internal and ens4
 
 Passwordless SSH from the deploy node to all nodes.
 
+![image](https://github.com/user-attachments/assets/729d92ff-af47-4333-a196-4d0a3c89d179)
 
 
 ## Deployment
