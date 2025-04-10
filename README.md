@@ -1,8 +1,17 @@
 
 # Kolla-Ansible Multi-Node Deployment (3 Controllers, 1 Compute)
 
+## Openstack Horizon dashboard
+https://38.129.16.228
+![image](https://github.com/user-attachments/assets/4fac296a-843e-4dcf-845e-f473bdc07998)
 
+## Grafana Dashboard
+https://38.129.16.228:3000
+![image](https://github.com/user-attachments/assets/e35019ea-3599-40b6-a9cb-76eb515b717e)
 
+## Openserach Centerlized dashboard
+https://38.129.16.228:5601
+![image](https://github.com/user-attachments/assets/7bb366ed-590e-4d59-8550-cd92f0748782)
 
 ## Tech Stack
 
